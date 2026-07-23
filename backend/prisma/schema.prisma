@@ -1,7 +1,3 @@
-// Placeholder schema for Phase 1.
-// Phase 2 will define the full User / Vehicle / Purchase models,
-// relations, enums (Role), and indexes for search performance.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,6 +7,59 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// TODO (Phase 2): model User { ... }
-// TODO (Phase 2): model Vehicle { ... }
-// TODO (Phase 2): model Purchase { ... }
+enum Role {
+  user
+  admin
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(user)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchases Purchase[]
+
+  @@map("users")
+}
+
+model Vehicle {
+  id        String   @id @default(uuid())
+  make      String
+  model     String
+  category  String
+  price     Float
+  quantity  Int      @default(0)
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchases Purchase[]
+
+  // One index per searchable field (make/model/category/price) so
+  // GET /api/vehicles/search can filter on any combination efficiently.
+  @@index([make])
+  @@index([model])
+  @@index([category])
+  @@index([price])
+  @@map("vehicles")
+}
+
+model Purchase {
+  id        String   @id @default(uuid())
+  userId    String
+  vehicleId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@map("purchases")
+}
+
