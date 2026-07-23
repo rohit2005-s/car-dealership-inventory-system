@@ -1,0 +1,16 @@
+// Placeholder schema for Phase 1.
+// Phase 2 will define the full User / Vehicle / Purchase models,
+// relations, enums (Role), and indexes for search performance.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// TODO (Phase 2): model User { ... }
+// TODO (Phase 2): model Vehicle { ... }
+// TODO (Phase 2): model Purchase { ... }
