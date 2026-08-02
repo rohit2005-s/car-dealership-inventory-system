@@ -1,22 +1,32 @@
 import request from 'supertest';
 import { app } from '../../src/app';
+import prisma from '../../src/utils/prisma';
 
-// TODO (Phase 3): remove .skip once auth.service.login is implemented.
-describe.skip('POST /api/auth/login', () => {
+// Full end-to-end integration test: real Express app + real Postgres via Prisma.
+// Requires `npx prisma generate` + a running DATABASE_URL to execute.
+describe('POST /api/auth/login', () => {
+  const email = `login-${Date.now()}@example.com`;
+  const password = 'password123';
+
+  beforeAll(async () => {
+    await request(app).post('/api/auth/register').send({ name: 'Login Test', email, password });
+  });
+
+  afterAll(async () => {
+    await prisma.user.deleteMany({ where: { email } });
+    await prisma.$disconnect();
+  });
+
   it('logs in successfully with valid credentials', async () => {
-    const res = await request(app).post('/api/auth/login').send({
-      email: 'test@example.com',
-      password: 'password123',
-    });
+    const res = await request(app).post('/api/auth/login').send({ email, password });
     expect(res.status).toBe(200);
     expect(res.body.data.token).toBeDefined();
   });
 
   it('rejects invalid credentials', async () => {
-    const res = await request(app).post('/api/auth/login').send({
-      email: 'test@example.com',
-      password: 'wrongpassword',
-    });
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email, password: 'wrongpassword' });
     expect(res.status).toBe(401);
   });
 });

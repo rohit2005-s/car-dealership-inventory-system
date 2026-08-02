@@ -1,13 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
-// import { authService } from '../services/auth.service';
+import { authService } from '../services/auth.service';
+import { registerSchema, loginSchema } from '../validators/auth.validator';
+import { AppError } from '../utils/AppError';
 
 /**
  * POST /api/auth/register
- * TODO (Phase 3): call authService.register(req.body), return { user, token }
  */
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
-    res.status(501).json({ success: false, message: 'Not implemented yet (Phase 3)' });
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(parsed.error.issues[0]?.message || 'Invalid input', 400);
+    }
+
+    const { user, token } = await authService.register(parsed.data);
+    res.status(201).json({ success: true, data: { user, token } });
   } catch (err) {
     next(err);
   }
@@ -15,11 +22,16 @@ export async function register(req: Request, res: Response, next: NextFunction) 
 
 /**
  * POST /api/auth/login
- * TODO (Phase 3): call authService.login(req.body), return { user, token }
  */
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
-    res.status(501).json({ success: false, message: 'Not implemented yet (Phase 3)' });
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(parsed.error.issues[0]?.message || 'Invalid input', 400);
+    }
+
+    const { user, token } = await authService.login(parsed.data);
+    res.status(200).json({ success: true, data: { user, token } });
   } catch (err) {
     next(err);
   }

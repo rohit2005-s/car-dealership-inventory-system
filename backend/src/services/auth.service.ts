@@ -1,4 +1,14 @@
+import prisma from '../utils/prisma';
+import { hashPassword, comparePassword } from '../utils/password';
+import { signToken } from '../utils/jwt';
+import { AppError } from '../utils/AppError';
 import { RegisterInput, LoginInput } from '../types';
+
+/** Strips the password field before returning a user object to a controller/client. */
+function toSafeUser<T extends { password: string }>(user: T) {
+  const { password, ...safeUser } = user;
+  return safeUser;
+}
 
 /**
  * authService holds all business logic for registration/login:
@@ -8,21 +18,34 @@ import { RegisterInput, LoginInput } from '../types';
  */
 export const authService = {
   async register(input: RegisterInput) {
-    // TODO (Phase 3):
-    // 1. check for existing user by email -> throw AppError(409) if found
-    // 2. hash password with bcrypt
-    // 3. create user via prisma
-    // 4. sign JWT
-    // 5. return { user, token }
-    throw new Error('Not implemented yet (Phase 3)');
+    const existing = await prisma.user.findUnique({ where: { email: input.email } });
+    if (existing) {
+      throw new AppError('An account with this email already exists', 409);
+    }
+
+    const hashed = await hashPassword(input.password);
+    const user = await prisma.user.create({
+      data: { name: input.name, email: input.email, password: hashed },
+    });
+
+    const token = signToken({ userId: user.id, role: user.role });
+    return { user: toSafeUser(user), token };
   },
 
   async login(input: LoginInput) {
-    // TODO (Phase 3):
-    // 1. find user by email -> throw AppError(401) if not found
-    // 2. compare password with bcrypt -> throw AppError(401) if mismatch
-    // 3. sign JWT
-    // 4. return { user, token }
-    throw new Error('Not implemented yet (Phase 3)');
+    const user = await prisma.user.findUnique({ where: { email: input.email } });
+    // Same error/status for "no such user" and "wrong password" — avoids
+    // leaking which part was incorrect (prevents user enumeration).
+    if (!user) {
+      throw new AppError('Invalid email or password', 401);
+    }
+
+    const matches = await comparePassword(input.password, user.password);
+    if (!matches) {
+      throw new AppError('Invalid email or password', 401);
+    }
+
+    const token = signToken({ userId: user.id, role: user.role });
+    return { user: toSafeUser(user), token };
   },
 };
