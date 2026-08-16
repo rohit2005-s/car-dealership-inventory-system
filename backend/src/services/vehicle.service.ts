@@ -1,3 +1,4 @@
+import prisma from '../utils/prisma';
 import { VehicleInput, VehicleSearchQuery } from '../types';
 
 /**
@@ -8,8 +9,7 @@ import { VehicleInput, VehicleSearchQuery } from '../types';
  */
 export const vehicleService = {
   async create(input: VehicleInput) {
-    // TODO (Phase 4): prisma.vehicle.create({ data: input })
-    throw new Error('Not implemented yet (Phase 4)');
+  return prisma.vehicle.create({ data: input });
   },
 
   async findAll(page: number, limit: number) {

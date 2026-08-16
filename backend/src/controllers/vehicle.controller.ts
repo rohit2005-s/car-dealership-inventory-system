@@ -1,16 +1,32 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
+import { vehicleService } from '../services/vehicle.service';
+import { vehicleSchema } from '../validators/vehicle.validator';
+import { AppError } from '../utils/AppError';
 // import { vehicleService } from '../services/vehicle.service';
 
-/** POST /api/vehicles — admin only. TODO (Phase 4) */
+/** POST /api/vehicles — admin only. */
 export async function createVehicle(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    res.status(501).json({ success: false, message: 'Not implemented yet (Phase 4)' });
+    const parsed = vehicleSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      throw new AppError(
+        parsed.error.issues[0]?.message || 'Invalid input',
+        400
+      );
+    }
+
+    const vehicle = await vehicleService.create(parsed.data);
+
+    res.status(201).json({
+      success: true,
+      data: vehicle,
+    });
   } catch (err) {
     next(err);
   }
 }
-
 /** GET /api/vehicles — list with pagination. TODO (Phase 4) */
 export async function getVehicles(req: Request, res: Response, next: NextFunction) {
   try {
