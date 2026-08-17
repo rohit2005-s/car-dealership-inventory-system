@@ -5,11 +5,33 @@ export const vehicleSchema = z.object({
   model: z.string().min(1, 'Model is required'),
   category: z.string().min(1, 'Category is required'),
   price: z.number().positive('Price must be greater than 0'),
-  quantity: z.number().int().nonnegative('Quantity cannot be negative'),
+  quantity: z
+    .number()
+    .int()
+    .nonnegative('Quantity cannot be negative'),
   imageUrl: z.string().url().optional(),
 });
 
 export const vehicleUpdateSchema = vehicleSchema.partial();
+
+// GET /api/vehicles pagination.
+// Query params arrive as strings, so z.coerce converts them.
+// Defaults keep the endpoint usable with no query params.
+// Limit is capped at 100 to prevent abuse via huge page sizes.
+export const paginationSchema = z.object({
+  page: z.coerce
+    .number()
+    .int('Page must be an integer')
+    .positive('Page must be greater than 0')
+    .default(1),
+
+  limit: z.coerce
+    .number()
+    .int('Limit must be an integer')
+    .positive('Limit must be greater than 0')
+    .max(100, 'Limit cannot exceed 100')
+    .default(10),
+});
 
 export const vehicleSearchSchema = z.object({
   make: z.string().optional(),
@@ -20,7 +42,10 @@ export const vehicleSearchSchema = z.object({
 });
 
 export const restockSchema = z.object({
-  amount: z.number().int().positive('Restock amount must be greater than 0'),
+  amount: z
+    .number()
+    .int()
+    .positive('Restock amount must be greater than 0'),
 });
 
 export type VehicleSchemaType = z.infer<typeof vehicleSchema>;
