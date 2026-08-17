@@ -26,7 +26,22 @@ export const vehicleService = {
   },
 
   async search(query: VehicleSearchQuery) {
-    throw new Error('Not implemented yet (Phase 4)');
+    const where: Record<string, unknown> = {};
+
+    if (query.make) where.make = query.make;
+    if (query.model) where.model = query.model;
+    if (query.category) where.category = query.category;
+
+    if (query.minPrice !== undefined || query.maxPrice !== undefined) {
+      const price: { gte?: number; lte?: number } = {};
+
+      if (query.minPrice !== undefined) price.gte = query.minPrice;
+      if (query.maxPrice !== undefined) price.lte = query.maxPrice;
+
+      where.price = price;
+    }
+
+    return prisma.vehicle.findMany({ where });
   },
 
   async update(id: string, input: Partial<VehicleInput>) {

@@ -4,6 +4,7 @@ import { vehicleService } from '../services/vehicle.service';
 import {
   vehicleSchema,
   paginationSchema,
+  vehicleSearchSchema,
 } from '../validators/vehicle.validator';
 import { AppError } from '../utils/AppError';
 
@@ -45,8 +46,7 @@ export async function getVehicles(
 
     if (!parsed.success) {
       throw new AppError(
-        parsed.error.issues[0]?.message ||
-          'Invalid pagination parameters',
+        parsed.error.issues[0]?.message || 'Invalid pagination parameters',
         400
       );
     }
@@ -68,16 +68,27 @@ export async function getVehicles(
   }
 }
 
-/** GET /api/vehicles/search — filter by make/model/category/price range. TODO (Phase 4) */
+/** GET /api/vehicles/search — public, filter by make/model/category/price range. */
 export async function searchVehicles(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   try {
-    res.status(501).json({
-      success: false,
-      message: 'Not implemented yet (Phase 4)',
+    const parsed = vehicleSearchSchema.safeParse(req.query);
+
+    if (!parsed.success) {
+      throw new AppError(
+        parsed.error.issues[0]?.message || 'Invalid search parameters',
+        400
+      );
+    }
+
+    const vehicles = await vehicleService.search(parsed.data);
+
+    res.status(200).json({
+      success: true,
+      data: vehicles,
     });
   } catch (err) {
     next(err);

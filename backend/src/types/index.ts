@@ -7,7 +7,6 @@ export interface JwtPayload {
   role: Role;
 }
 
-// Extends Express Request so controllers get typed `req.user` after auth middleware
 export interface AuthRequest extends Request {
   user?: JwtPayload;
 }
@@ -36,8 +35,6 @@ export interface VehicleSearchQuery {
   make?: string;
   model?: string;
   category?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  page?: string;
-  limit?: string;
+  minPrice?: number;
+  maxPrice?: number;
 }
