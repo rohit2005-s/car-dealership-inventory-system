@@ -3,6 +3,7 @@ import { AuthRequest } from '../types';
 import { vehicleService } from '../services/vehicle.service';
 import {
   vehicleSchema,
+  vehicleUpdateSchema,
   paginationSchema,
   vehicleSearchSchema,
 } from '../validators/vehicle.validator';
@@ -95,16 +96,30 @@ export async function searchVehicles(
   }
 }
 
-/** PUT /api/vehicles/:id — admin only. TODO (Phase 4) */
+/** PUT /api/vehicles/:id — admin only. */
 export async function updateVehicle(
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) {
   try {
-    res.status(501).json({
-      success: false,
-      message: 'Not implemented yet (Phase 4)',
+    const parsed = vehicleUpdateSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      throw new AppError(
+        parsed.error.issues[0]?.message || 'Invalid input',
+        400
+      );
+    }
+
+    const vehicle = await vehicleService.update(
+      req.params.id,
+      parsed.data
+    );
+
+    res.status(200).json({
+      success: true,
+      data: vehicle,
     });
   } catch (err) {
     next(err);

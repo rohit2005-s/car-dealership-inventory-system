@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma';
 import { VehicleInput, VehicleSearchQuery } from '../types';
+import { AppError } from '../utils/AppError';
 
 export const vehicleService = {
   async create(input: VehicleInput) {
@@ -45,8 +46,15 @@ export const vehicleService = {
   },
 
   async update(id: string, input: Partial<VehicleInput>) {
-    throw new Error('Not implemented yet (Phase 4)');
-  },
+  try {
+    return await prisma.vehicle.update({ where: { id }, data: input });
+  } catch (err: any) {
+    if (err?.code === 'P2025') {
+      throw new AppError('Vehicle not found', 404);
+    }
+    throw err;
+  }
+},
 
   async delete(id: string) {
     throw new Error('Not implemented yet (Phase 4)');
