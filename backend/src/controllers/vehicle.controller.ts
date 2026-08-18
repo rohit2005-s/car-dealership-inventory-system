@@ -47,17 +47,16 @@ export async function getVehicles(
 
     if (!parsed.success) {
       throw new AppError(
-        parsed.error.issues[0]?.message || 'Invalid pagination parameters',
+        parsed.error.issues[0]?.message ||
+          'Invalid pagination parameters',
         400
       );
     }
 
     const { page, limit } = parsed.data;
 
-    const { vehicles, pagination } = await vehicleService.findAll(
-      page,
-      limit
-    );
+    const { vehicles, pagination } =
+      await vehicleService.findAll(page, limit);
 
     res.status(200).json({
       success: true,
@@ -69,7 +68,7 @@ export async function getVehicles(
   }
 }
 
-/** GET /api/vehicles/search — public, filter by make/model/category/price range. */
+/** GET /api/vehicles/search — public search/filter. */
 export async function searchVehicles(
   req: Request,
   res: Response,
@@ -80,7 +79,8 @@ export async function searchVehicles(
 
     if (!parsed.success) {
       throw new AppError(
-        parsed.error.issues[0]?.message || 'Invalid search parameters',
+        parsed.error.issues[0]?.message ||
+          'Invalid search parameters',
         400
       );
     }
@@ -126,23 +126,25 @@ export async function updateVehicle(
   }
 }
 
-/** DELETE /api/vehicles/:id — admin only. TODO (Phase 4) */
+/** DELETE /api/vehicles/:id — admin only. */
 export async function deleteVehicle(
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) {
   try {
-    res.status(501).json({
-      success: false,
-      message: 'Not implemented yet (Phase 4)',
+    const vehicle = await vehicleService.delete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      data: vehicle,
     });
   } catch (err) {
     next(err);
   }
 }
 
-/** POST /api/vehicles/:id/purchase — decrement stock, log purchase. TODO (Phase 4) */
+/** POST /api/vehicles/:id/purchase — user purchase. */
 export async function purchaseVehicle(
   req: AuthRequest,
   res: Response,
@@ -158,7 +160,7 @@ export async function purchaseVehicle(
   }
 }
 
-/** POST /api/vehicles/:id/restock — admin only, increment stock. TODO (Phase 4) */
+/** POST /api/vehicles/:id/restock — admin only. */
 export async function restockVehicle(
   req: AuthRequest,
   res: Response,
