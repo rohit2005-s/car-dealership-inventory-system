@@ -145,16 +145,23 @@ export async function deleteVehicle(
   }
 }
 
-/** POST /api/vehicles/:id/purchase — decrement stock, log purchase. TODO (Phase 4) */
+/** POST /api/vehicles/:id/purchase — authenticated users. */
 export async function purchaseVehicle(
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) {
   try {
-    res.status(501).json({
-      success: false,
-      message: 'Not implemented yet (Phase 4)',
+    const vehicle = await vehicleService.purchase(
+      req.params.id,
+      req.user!.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        vehicle,
+      },
     });
   } catch (err) {
     next(err);

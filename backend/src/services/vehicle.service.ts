@@ -80,7 +80,56 @@ export const vehicleService = {
   },
 
   async purchase(vehicleId: string, userId: string) {
-    throw new Error('Not implemented yet (Phase 4)');
+    return prisma.$transaction(async (tx) => {
+      // Atomically decrease stock only if the vehicle exists
+      // and has at least one item available.
+      const result = await tx.vehicle.updateMany({
+        where: {
+          id: vehicleId,
+          quantity: {
+            gt: 0,
+          },
+        },
+        data: {
+          quantity: {
+            decrement: 1,
+          },
+        },
+      });
+
+      // If nothing was updated, determine whether the vehicle
+      // does not exist or simply has no stock.
+      if (result.count === 0) {
+        const vehicle = await tx.vehicle.findUnique({
+          where: { id: vehicleId },
+        });
+
+        if (!vehicle) {
+          throw new AppError('Vehicle not found', 404);
+        }
+
+        throw new AppError('Vehicle is out of stock', 400);
+      }
+
+      // Create the purchase record in the same transaction.
+      await tx.purchase.create({
+        data: {
+          userId,
+          vehicleId,
+        },
+      });
+
+      // Return the updated vehicle.
+      const vehicle = await tx.vehicle.findUnique({
+        where: { id: vehicleId },
+      });
+
+      if (!vehicle) {
+        throw new AppError('Vehicle not found', 404);
+      }
+
+      return vehicle;
+    });
   },
 
   async restock(vehicleId: string, amount: number) {
