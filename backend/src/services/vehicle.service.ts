@@ -11,10 +11,7 @@ export const vehicleService = {
     const skip = (page - 1) * limit;
 
     const [vehicles, total] = await Promise.all([
-      prisma.vehicle.findMany({
-        skip,
-        take: limit,
-      }),
+      prisma.vehicle.findMany({ skip, take: limit }),
       prisma.vehicle.count(),
     ]);
 
@@ -32,26 +29,12 @@ export const vehicleService = {
   async search(query: VehicleSearchQuery) {
     const where: Record<string, unknown> = {};
 
-    if (query.make) {
-      where.make = query.make;
-    }
+    if (query.make) where.make = query.make;
+    if (query.model) where.model = query.model;
+    if (query.category) where.category = query.category;
 
-    if (query.model) {
-      where.model = query.model;
-    }
-
-    if (query.category) {
-      where.category = query.category;
-    }
-
-    if (
-      query.minPrice !== undefined ||
-      query.maxPrice !== undefined
-    ) {
-      const price: {
-        gte?: number;
-        lte?: number;
-      } = {};
+    if (query.minPrice !== undefined || query.maxPrice !== undefined) {
+      const price: { gte?: number; lte?: number } = {};
 
       if (query.minPrice !== undefined) {
         price.gte = query.minPrice;
@@ -64,9 +47,7 @@ export const vehicleService = {
       where.price = price;
     }
 
-    return prisma.vehicle.findMany({
-      where,
-    });
+    return prisma.vehicle.findMany({ where });
   },
 
   async update(id: string, input: Partial<VehicleInput>) {
@@ -103,6 +84,17 @@ export const vehicleService = {
   },
 
   async restock(vehicleId: string, amount: number) {
-    throw new Error('Not implemented yet (Phase 4)');
+    try {
+      return await prisma.vehicle.update({
+        where: { id: vehicleId },
+        data: { quantity: { increment: amount } },
+      });
+    } catch (err: any) {
+      if (err?.code === 'P2025') {
+        throw new AppError('Vehicle not found', 404);
+      }
+
+      throw err;
+    }
   },
 };
