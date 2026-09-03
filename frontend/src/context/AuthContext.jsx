@@ -1,38 +1,102 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useCallback } from 'react';
+import { authService } from '../services/auth.service';
+import { isTokenExpired } from '../utils/jwt';
 
 export const AuthContext = createContext(null);
 
+function readStoredAuth() {
+  const token = localStorage.getItem('token');
+  const storedUser = localStorage.getItem('user');
+
+  if (!token || !storedUser) return { user: null, token: null };
+
+  if (isTokenExpired(token)) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return { user: null, token: null };
+  }
+
+  try {
+    return { user: JSON.parse(storedUser), token };
+  } catch {
+    return { user: null, token: null };
+  }
+}
+
+function persistAuth(user, token) {
+  localStorage.setItem('token', token);
+  localStorage.setItem('user', JSON.stringify(user));
+}
+
+function clearStoredAuth() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+}
+
 /**
- * Holds current user + token in memory, synced with localStorage.
- * TODO (Phase 6): populate login()/register()/logout() with real
- * calls to authService, and expose `isAdmin` helper for route guards.
+ * Owns client-side auth state for the SPA: current user, JWT, and derived
+ * isAuthenticated flag. Persists to localStorage so a page refresh doesn't
+ * log the user out, and validates the token's expiry on load.
+ *
+ * IMPORTANT: this is a client-side convenience layer only. It does not (and
+ * cannot) enforce security — every protected/admin-only backend route still
+ * re-verifies the JWT and role independently via authMiddleware/roleMiddleware.
+ * Client-side role checks here only drive which UI is shown; they are not a
+ * substitute for backend authorization.
  */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (stored) setUser(JSON.parse(stored));
-    setLoading(false);
+    const { user: storedUser, token: storedToken } = readStoredAuth();
+
+    setUser(storedUser);
+    setToken(storedToken);
+    setIsLoading(false);
   }, []);
 
-  const login = async (_credentials) => {
-    // TODO (Phase 6): call authService.login, then setUser + persist token
-  };
+  const login = useCallback(async (credentials) => {
+    const res = await authService.login(credentials);
+    const { user: loggedInUser, token: issuedToken } = res.data.data;
 
-  const register = async (_details) => {
-    // TODO (Phase 6): call authService.register, then setUser + persist token
-  };
+    persistAuth(loggedInUser, issuedToken);
+    setUser(loggedInUser);
+    setToken(issuedToken);
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    return loggedInUser;
+  }, []);
+
+  const register = useCallback(async (details) => {
+    const res = await authService.register(details);
+    const { user: newUser, token: issuedToken } = res.data.data;
+
+    persistAuth(newUser, issuedToken);
+    setUser(newUser);
+    setToken(issuedToken);
+
+    return newUser;
+  }, []);
+
+  const logout = useCallback(() => {
+    clearStoredAuth();
     setUser(null);
+    setToken(null);
+  }, []);
+
+  const value = {
+    user,
+    token,
+    isAuthenticated: Boolean(user && token),
+    isLoading,
+    login,
+    register,
+    logout,
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
