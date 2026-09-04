@@ -7,15 +7,33 @@ import AdminDashboard from '../pages/AdminDashboard';
 import PurchaseHistory from '../pages/PurchaseHistory';
 import NotFound from '../pages/NotFound';
 import ProtectedRoute from './ProtectedRoute';
+import GuestOnlyRoute from './GuestOnlyRoute';
 
-// TODO (Phase 6): import this into App.jsx once AuthProvider/ThemeProvider are wired up.
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route
+        path="/login"
+        element={
+          <GuestOnlyRoute>
+            <Login />
+          </GuestOnlyRoute>
+        }
+      />
+
+      <Route
+        path="/register"
+        element={
+          <GuestOnlyRoute>
+            <Register />
+          </GuestOnlyRoute>
+        }
+      />
+
       <Route path="/" element={<Dashboard />} />
+
       <Route path="/vehicles/:id" element={<VehicleDetails />} />
+
       <Route
         path="/admin"
         element={
@@ -24,6 +42,7 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/purchases"
         element={
@@ -32,6 +51,7 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
