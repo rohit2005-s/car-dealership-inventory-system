@@ -1,6 +1,5 @@
 import api from './api';
 
-// TODO (Phase 6): wire these into React Query/useEffect calls in pages.
 export const vehicleService = {
   getAll: (params) => api.get('/vehicles', { params }),
   search: (params) => api.get('/vehicles/search', { params }),
