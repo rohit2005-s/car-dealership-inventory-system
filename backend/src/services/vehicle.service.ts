@@ -26,6 +26,18 @@ export const vehicleService = {
     };
   },
 
+  async findById(id: string) {
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id },
+    });
+
+    if (!vehicle) {
+      throw new AppError('Vehicle not found', 404);
+    }
+
+    return vehicle;
+  },
+
   async search(query: VehicleSearchQuery) {
     const where: Record<string, unknown> = {};
 

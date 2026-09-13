@@ -3,6 +3,7 @@ import {
   createVehicle,
   getVehicles,
   searchVehicles,
+  getVehicleById,
   updateVehicle,
   deleteVehicle,
   purchaseVehicle,
@@ -16,6 +17,7 @@ const router = Router();
 // Public
 router.get('/', getVehicles);
 router.get('/search', searchVehicles);
+router.get('/:id', getVehicleById);
 
 // Admin only
 router.post('/', authMiddleware, roleMiddleware('admin'), createVehicle);

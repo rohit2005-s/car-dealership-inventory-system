@@ -31,6 +31,7 @@ export default function AppRoutes() {
       />
 
       <Route path="/" element={<Dashboard />} />
+      <Route path="/inventory" element={<Dashboard />} />
 
       <Route path="/vehicles/:id" element={<VehicleDetails />} />
 

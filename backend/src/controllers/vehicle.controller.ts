@@ -97,6 +97,24 @@ export async function searchVehicles(
   }
 }
 
+/** GET /api/vehicles/:id — public, retrieve single vehicle by ID. */
+export async function getVehicleById(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const vehicle = await vehicleService.findById(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      data: vehicle,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 /** PUT /api/vehicles/:id — admin only. */
 export async function updateVehicle(
   req: AuthRequest,

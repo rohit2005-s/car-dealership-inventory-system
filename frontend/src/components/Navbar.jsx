@@ -33,7 +33,7 @@ export default function Navbar() {
 
         {/* Desktop links */}
         <div className="hidden items-center gap-6 md:flex">
-          <Link to="/" className={navLinkClasses}>
+          <Link to="/inventory" className={navLinkClasses}>
             Inventory
           </Link>
 
@@ -95,7 +95,7 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="border-t border-neutral-200 px-4 py-3 md:hidden dark:border-neutral-800">
           <div className="flex flex-col gap-3">
-            <Link to="/" className={navLinkClasses} onClick={closeMobile}>
+            <Link to="/inventory" className={navLinkClasses} onClick={closeMobile}>
               Inventory
             </Link>
 
