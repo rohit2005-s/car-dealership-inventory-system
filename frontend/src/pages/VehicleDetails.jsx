@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { vehicleService } from '../services/vehicle.service';
+import { useAuth } from '../hooks/useAuth';
 
 function AutomotiveFallback({ make, model }) {
   return (
@@ -93,11 +94,20 @@ function VehicleDetailsSkeleton() {
 
 export default function VehicleDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAuthenticated } = useAuth();
+
   const [vehicle, setVehicle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isNotFound, setIsNotFound] = useState(false);
   const [imgError, setImgError] = useState(false);
+
+  // Purchase modal states
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -148,10 +158,60 @@ export default function VehicleDetails() {
   }, [id]);
 
   const handlePurchaseClick = () => {
-    toast('Purchase functionality will be available in the next step.', {
-      icon: 'ℹ️',
-      duration: 4000,
-    });
+    if (!isAuthenticated) {
+      toast('Please sign in to complete your vehicle purchase.', {
+        icon: '🔒',
+        duration: 4000,
+      });
+      navigate('/login', {
+        state: { from: location },
+      });
+      return;
+    }
+
+    if (vehicle.quantity <= 0) {
+      toast.error('This vehicle is currently out of stock.');
+      return;
+    }
+
+    setPurchaseSuccess(false);
+    setShowPurchaseModal(true);
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!vehicle || isPurchasing) return;
+
+    setIsPurchasing(true);
+    try {
+      const res = await vehicleService.purchase(vehicle.id);
+      const updatedVehicle = res.data?.data?.vehicle;
+      if (updatedVehicle) {
+        setVehicle(updatedVehicle);
+      } else {
+        setVehicle((prev) => ({
+          ...prev,
+          quantity: Math.max(0, prev.quantity - 1),
+        }));
+      }
+
+      setPurchaseSuccess(true);
+      toast.success('Vehicle purchase confirmed!');
+    } catch (err) {
+      const msg = err.message || 'Unable to complete purchase. Please try again.';
+      toast.error(msg);
+      if (msg.toLowerCase().includes('out of stock')) {
+        setVehicle((prev) => ({ ...prev, quantity: 0 }));
+        setShowPurchaseModal(false);
+      }
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    if (isPurchasing) return;
+    setShowPurchaseModal(false);
+    setPurchaseSuccess(false);
   };
 
   if (loading) {
@@ -476,6 +536,192 @@ export default function VehicleDetails() {
           </div>
         </section>
       </div>
+
+      {/* 3. Purchase Confirmation & Success Modal */}
+      {showPurchaseModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="purchase-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        >
+          <div className="card w-full max-w-lg overflow-hidden p-6 sm:p-8 shadow-2xl relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+            {!purchaseSuccess ? (
+              <>
+                <div className="flex items-start justify-between border-b border-neutral-100 pb-4 dark:border-neutral-800">
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+                      AutoHaus Checkout
+                    </span>
+                    <h2
+                      id="purchase-modal-title"
+                      className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white"
+                    >
+                      Confirm Vehicle Purchase
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    disabled={isPurchasing}
+                    className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+                    aria-label="Close dialog"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Order Summary Item */}
+                <div className="my-5 flex items-center gap-4 rounded-xl border border-neutral-200/80 bg-neutral-50/70 p-4 dark:border-neutral-800 dark:bg-neutral-950/60">
+                  <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-200 dark:bg-neutral-800">
+                    {vehicle.imageUrl && !imgError ? (
+                      <img
+                        src={vehicle.imageUrl}
+                        alt={`${vehicle.make} ${vehicle.model}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase text-neutral-400">
+                        AutoHaus
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+                      {vehicle.category}
+                    </p>
+                    <h3 className="text-base font-bold text-neutral-900 truncate dark:text-white">
+                      {vehicle.make} {vehicle.model}
+                    </h3>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                      Available Stock: {vehicle.quantity} {vehicle.quantity === 1 ? 'unit' : 'units'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Pricing Breakdown */}
+                <div className="space-y-2 border-b border-neutral-100 pb-4 text-sm dark:border-neutral-800">
+                  <div className="flex justify-between text-neutral-600 dark:text-neutral-400">
+                    <span>Vehicle Price</span>
+                    <span className="font-semibold text-neutral-900 dark:text-white">
+                      {formatPrice(vehicle.price)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-neutral-600 dark:text-neutral-400">
+                    <span>Dealer Doc & Prep Fee</span>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                      $0 (Waived)
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-neutral-600 dark:text-neutral-400">
+                    <span>Title & Registration Service</span>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                      Included
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-2 text-base font-bold border-t border-neutral-100 dark:border-neutral-800 text-neutral-900 dark:text-white">
+                    <span>Total Due</span>
+                    <span className="text-brand-600 dark:text-brand-400">
+                      {formatPrice(vehicle.price)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Buyer Info */}
+                <div className="my-4 rounded-lg bg-neutral-100/70 p-3 text-xs text-neutral-600 dark:bg-neutral-800/60 dark:text-neutral-300">
+                  <p className="font-semibold text-neutral-800 dark:text-neutral-200">
+                    Purchasing As:
+                  </p>
+                  <p className="mt-0.5">{user?.name} ({user?.email})</p>
+                </div>
+
+                {/* Assurance & Action Buttons */}
+                <p className="mb-5 text-[11px] text-neutral-500 dark:text-neutral-400">
+                  By confirming, 1 vehicle will be officially reserved and deducted from showroom inventory under your account.
+                </p>
+
+                <div className="flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    disabled={isPurchasing}
+                    className="btn-outline px-4 py-2 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmPurchase}
+                    disabled={isPurchasing}
+                    className="btn-primary inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isPurchasing ? (
+                      <>
+                        <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        Processing...
+                      </>
+                    ) : (
+                      'Confirm Purchase'
+                    )}
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* Success State */
+              <div className="text-center py-4">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/70 dark:text-emerald-400">
+                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  Purchase Confirmed
+                </span>
+                <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
+                  Order Successfully Placed!
+                </h2>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-600 dark:text-neutral-400">
+                  Congratulations! You have purchased the <strong className="font-semibold text-neutral-900 dark:text-white">{vehicle.make} {vehicle.model}</strong> for <strong className="font-semibold text-neutral-900 dark:text-white">{formatPrice(vehicle.price)}</strong>.
+                </p>
+
+                <div className="my-6 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 text-xs text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300 text-left">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <span>✓</span> Inventory updated in real time
+                  </div>
+                  <div className="flex items-center gap-2 mt-1.5 font-semibold">
+                    <span>✓</span> Reservation logged under your profile
+                  </div>
+                  <div className="flex items-center gap-2 mt-1.5 font-semibold">
+                    <span>✓</span> 7-day money-back guarantee active
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <Link
+                    to="/purchases"
+                    className="btn-primary w-full justify-center py-2.5 text-sm font-semibold"
+                  >
+                    View Purchase History
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="btn-outline w-full justify-center py-2.5 text-sm"
+                  >
+                    Continue Browsing
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

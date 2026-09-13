@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import AuthLayout from '../components/auth/AuthLayout';
@@ -11,6 +11,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [form, setForm] = useState({
     email: '',
@@ -68,8 +69,10 @@ export default function Login() {
       });
 
       toast.success('Welcome back!');
-
-      navigate('/', {
+      const destination =
+        location.state?.from?.pathname ||
+        (typeof location.state?.from === 'string' ? location.state.from : '/');
+      navigate(destination, {
         replace: true,
       });
     } catch (err) {
