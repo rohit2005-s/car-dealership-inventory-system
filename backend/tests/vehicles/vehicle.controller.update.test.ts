@@ -150,6 +150,36 @@ describe('PUT /api/vehicles/:id', () => {
     );
   });
 
+  it('successfully updates imageUrl to null', async () => {
+    const updatedVehicle = {
+      id: 'v1',
+      make: 'Toyota',
+      model: 'Camry',
+      category: 'Sedan',
+      price: 27000,
+      quantity: 8,
+      imageUrl: null,
+    };
+
+    mockedVehicleService.update.mockResolvedValue(
+      updatedVehicle as any
+    );
+
+    const res = await request(app)
+      .put('/api/vehicles/v1')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        imageUrl: null,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual(updatedVehicle);
+    expect(mockedVehicleService.update).toHaveBeenCalledWith(
+      'v1',
+      { imageUrl: null }
+    );
+  });
+
   it('returns 404 when the vehicle does not exist', async () => {
     mockedVehicleService.update.mockRejectedValue(
       new AppError('Vehicle not found', 404)

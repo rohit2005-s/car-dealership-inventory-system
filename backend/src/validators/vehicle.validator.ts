@@ -9,7 +9,7 @@ export const vehicleSchema = z.object({
     .number()
     .int()
     .nonnegative('Quantity cannot be negative'),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().url().nullable().optional(),
 });
 
 export const vehicleUpdateSchema = vehicleSchema.partial();

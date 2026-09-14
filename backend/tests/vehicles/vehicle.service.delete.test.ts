@@ -59,6 +59,19 @@ describe('vehicleService.delete', () => {
     });
   });
 
+  it('throws a 400 AppError when the vehicle has existing customer purchase records (P2003)', async () => {
+    mockedPrisma.vehicle.delete.mockRejectedValue({
+      code: 'P2003',
+    });
+
+    await expect(
+      vehicleService.delete('v1')
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Cannot delete vehicle with existing customer purchase records',
+    });
+  });
+
   it('rethrows unrelated database errors unchanged', async () => {
     const dbError = new Error('database connection failed');
 

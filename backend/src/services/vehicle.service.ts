@@ -87,6 +87,13 @@ export const vehicleService = {
         throw new AppError('Vehicle not found', 404);
       }
 
+      if (err?.code === 'P2003') {
+        throw new AppError(
+          'Cannot delete vehicle with existing customer purchase records',
+          400
+        );
+      }
+
       throw err;
     }
   },

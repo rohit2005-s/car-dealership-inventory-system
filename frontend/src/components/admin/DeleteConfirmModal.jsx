@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { vehicleService } from '../../services/vehicle.service';
 
@@ -18,6 +18,19 @@ export default function DeleteConfirmModal({
   onSuccess,
 }) {
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !isDeleting) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isDeleting, onClose]);
 
   if (!isOpen || !vehicle) return null;
 
@@ -40,6 +53,11 @@ export default function DeleteConfirmModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="delete-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isDeleting) {
+          onClose();
+        }
+      }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
     >
       <div className="card w-full max-w-md overflow-hidden p-6 sm:p-8 shadow-2xl relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">

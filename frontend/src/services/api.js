@@ -22,6 +22,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (typeof window !== 'undefined' && error.response?.status === 401) {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    }
+
     const message =
       error.response?.data?.message ||
       error.message ||

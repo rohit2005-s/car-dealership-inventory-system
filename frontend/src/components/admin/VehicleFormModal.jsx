@@ -58,6 +58,19 @@ export default function VehicleFormModal({
     setErrors({});
   }, [vehicle, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !isSubmitting) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isSubmitting, onClose]);
+
   if (!isOpen) return null;
 
   const handleChange = (e) => {
@@ -128,6 +141,8 @@ export default function VehicleFormModal({
 
     if (form.imageUrl && form.imageUrl.trim()) {
       payload.imageUrl = form.imageUrl.trim();
+    } else if (isEdit) {
+      payload.imageUrl = null;
     }
 
     try {
@@ -153,6 +168,11 @@ export default function VehicleFormModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="vehicle-form-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isSubmitting) {
+          onClose();
+        }
+      }}
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
     >
       <div className="card my-8 w-full max-w-xl overflow-hidden p-6 sm:p-8 shadow-2xl relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">

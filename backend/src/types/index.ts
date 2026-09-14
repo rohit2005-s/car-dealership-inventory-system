@@ -28,7 +28,7 @@ export interface VehicleInput {
   category: string;
   price: number;
   quantity: number;
-  imageUrl?: string;
+  imageUrl?: string | null;
 }
 
 export interface VehicleSearchQuery {

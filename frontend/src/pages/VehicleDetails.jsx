@@ -214,6 +214,19 @@ export default function VehicleDetails() {
     setPurchaseSuccess(false);
   };
 
+  useEffect(() => {
+    if (!showPurchaseModal) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !isPurchasing) {
+        handleCloseModal();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showPurchaseModal, isPurchasing]);
+
   if (loading) {
     return <VehicleDetailsSkeleton />;
   }
@@ -543,6 +556,11 @@ export default function VehicleDetails() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="purchase-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isPurchasing) {
+              handleCloseModal();
+            }
+          }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
         >
           <div className="card w-full max-w-lg overflow-hidden p-6 sm:p-8 shadow-2xl relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
