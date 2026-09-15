@@ -11,7 +11,26 @@ import { errorMiddleware, notFoundMiddleware } from './middlewares/error.middlew
 export function createApp(): Application {
   const app = express();
 
-  app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
+  const clientUrl = process.env.CLIENT_URL;
+  const allowedOrigins = clientUrl
+    ? clientUrl.split(',').map((u) => u.trim().replace(/\/$/, ''))
+    : '*';
+
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins === '*' || allowedOrigins.includes('*')) {
+          return callback(null, true);
+        }
+        const normalizedOrigin = origin.replace(/\/$/, '');
+        if (allowedOrigins.includes(normalizedOrigin)) {
+          return callback(null, true);
+        }
+        return callback(new Error(`CORS error: Origin ${origin} not allowed`));
+      },
+      credentials: true,
+    })
+  );
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
